@@ -1,15 +1,18 @@
-import os
-
-from glob import glob
+from os import path as osp
 
 
 NS2S = 1e9
 MS2S = 1e6
 
-TRAIN_DATASET_PATH = os.path.join('dataset', 'train')
+### ronin
+RONIN_STEP_SIZE = 10
+RONIN_WINDOW_SIZE = 200
+RONIN_INTERVAL = 1. / 200
+RONIN_BATCH_SIZE = 1024
 
-RONIN_RESNET_MODEL_PATH = os.path.join('trained_models', 'ronin_resnet', 'checkpoint_gsn_latest.pt')
-AUTOENCODER_MODEL_PATH = os.path.join('trained_models', 'autoencoder', 'checkpoint')
 
-def get_train_dataset():
-    return glob(os.path.join(TRAIN_DATASET_PATH, '*'))
+### autoencoder
+
+
+### landmark
+

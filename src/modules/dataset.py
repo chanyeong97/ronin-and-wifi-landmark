@@ -1,9 +1,11 @@
-import os
+import scipy
 import numpy as np
 import quaternion
 import pandas as pd
-import scipy
-import config
+
+from os import path as osp
+
+from config import *
 
 
 def interpolate_vector_linear(input, input_timestamp, output_timestamp):
@@ -43,62 +45,58 @@ def compute_output_time(all_sources, sample_rate=200):
     return np.arange(min_t, max_t, interval)
 
 
-def load_ronin_features(dataset):
-    wifi = {}
+def ronin_features(sequence):
+    wifi = []
     features = {}
-    for sequence in dataset:
-        wifi_pd = pd.read_csv( os.path.join(sequence, 'wifi.txt'), delimiter='\t', names=['timestamp', 'bssid', 'rssi'])
-        wifi_list = wifi_pd.values.tolist()
-        sequence_name = os.path.basename(sequence)
-        wifi[sequence_name] = [{'timestamp': wifi_list[0][0] / config.MS2S}]
-        bssid = []
-        level = []
-        for data in wifi_list:
-            timestamp = data[0] / config.MS2S
-            if not wifi[sequence_name][-1]['timestamp'] == timestamp:
-                wifi[sequence_name][-1]['bssid'] = bssid
-                wifi[sequence_name][-1]['level'] = level
-                wifi[sequence_name].append({'timestamp': timestamp})
-                bssid = []
-                level = []
-            bssid.append(data[1])
-            level.append(data[2])
-        else:
-            wifi[sequence_name][-1]['bssid'] = bssid
-            wifi[sequence_name][-1]['level'] = level
-        
-        gyro = np.loadtxt(os.path.join(sequence, 'gyro.txt'))
-        acce = np.genfromtxt(os.path.join(sequence, 'acce.txt'))
-        gyro_uncalib = np.genfromtxt(os.path.join(sequence, 'gyro_uncalib.txt'))[:, :4]
-        game_rv = np.genfromtxt(os.path.join(sequence, 'game_rv.txt'))
 
-        acce[:, 0] /= config.NS2S
-        gyro[:, 0] /= config.NS2S
-        gyro_uncalib[:, 0] /= config.NS2S
-        game_rv[:, 0] /= config.NS2S
+    gyro = np.genfromtxt(osp.join(sequence, 'gyro.txt'))
+    acce = np.genfromtxt(osp.join(sequence, 'acce.txt'))
+    gyro_uncalib = np.genfromtxt(osp.join(sequence, 'gyro_uncalib.txt'))[:, :4]
+    game_rv = np.genfromtxt(osp.join(sequence, 'game_rv.txt'))
 
-        all_sources = {
-            'acce': acce,
-            'gyro': gyro,
-            'gyro_uncalib': gyro_uncalib,
-            'game_rv': game_rv
-        }
-        output_time = compute_output_time(all_sources)
+    acce[:, 0] /= NS2S
+    gyro[:, 0] /= NS2S
+    gyro_uncalib[:, 0] /= NS2S
+    game_rv[:, 0] /= NS2S
 
-        acce = process_data_source(acce, output_time, 'vector')
-        gyro = process_data_source(gyro, output_time, 'vector')
-        gyro_uncalib = process_data_source(gyro_uncalib, output_time, 'vector')
-        game_rv = process_data_source(game_rv[:, [0, 4, 1, 2, 3]], output_time, 'quaternion')
-        init_gyro_bias = gyro_uncalib[0] - gyro[0]
-        gyro_uncalib -= init_gyro_bias
+    all_sources = {
+        'acce': acce,
+        'gyro': gyro,
+        'gyro_uncalib': gyro_uncalib,
+        'game_rv': game_rv
+    }
+    output_time = compute_output_time(all_sources)
 
-        ori_q = quaternion.from_float_array(game_rv)
-        gyro_q = quaternion.from_float_array(np.concatenate([np.zeros([gyro_uncalib.shape[0], 1]), gyro_uncalib], axis=1))
-        acce_q = quaternion.from_float_array(np.concatenate([np.zeros([acce.shape[0], 1]), acce], axis=1))
-        glob_gyro = quaternion.as_float_array(ori_q * gyro_q * ori_q.conj())[:, 1:]
-        glob_acce = quaternion.as_float_array(ori_q * acce_q * ori_q.conj())[:, 1:]
-        features[sequence_name] = {}
-        features[sequence_name]['feature'] = np.concatenate([glob_gyro, glob_acce], axis=1)
-        features[sequence_name]['timestamp'] = output_time
+    acce = process_data_source(acce, output_time, 'vector')
+    gyro = process_data_source(gyro, output_time, 'vector')
+    gyro_uncalib = process_data_source(gyro_uncalib, output_time, 'vector')
+    game_rv = process_data_source(game_rv[:, [0, 4, 1, 2, 3]], output_time, 'quaternion')
 
+    init_gyro_bias = gyro_uncalib[0] - gyro[0]
+    gyro_uncalib -= init_gyro_bias
+
+    ori_q = quaternion.from_float_array(game_rv)
+    gyro_q = quaternion.from_float_array(np.concatenate([np.zeros([gyro_uncalib.shape[0], 1]), gyro_uncalib], axis=1))
+    acce_q = quaternion.from_float_array(np.concatenate([np.zeros([acce.shape[0], 1]), acce], axis=1))
+    glob_gyro = quaternion.as_float_array(ori_q * gyro_q * ori_q.conj())[:, 1:]
+    glob_acce = quaternion.as_float_array(ori_q * acce_q * ori_q.conj())[:, 1:]
+
+    features['feature'] = np.concatenate([glob_gyro, glob_acce], axis=1)
+    features['timestamp'] = output_time
+
+    wifi_pd = pd.read_csv(osp.join(sequence, 'wifi.txt'), delimiter='\t', names=['timestamp', 'bssid', 'level'])
+    wifi_list = wifi_pd.values.tolist()
+    for v in wifi_list:
+        timestamp = v[0] / MS2S
+        bssid = v[1]
+        level = v[2]
+        if output_time[0] < timestamp and output_time[-(RONIN_WINDOW_SIZE+RONIN_STEP_SIZE)] > timestamp:
+            if len(wifi) == 0 or not wifi[-1]['timestamp'] == timestamp:
+                wifi.append({
+                    'timestamp': timestamp,
+                    'bssid': [bssid],
+                    'level': [level]})
+            else:
+                wifi[-1]['bssid'].append(bssid)
+                wifi[-1]['level'].append(level)
     return wifi, features

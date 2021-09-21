@@ -1,14 +1,9 @@
+"""
+The code is based on the original ResNet implementation from torchvision.models.resnet
+"""
+
 import torch
 import torch.nn as nn
-
-_input_channel, _output_channel = 6, 2
-_fc_config = {'fc_dim': 512, 'in_dim': 7, 'dropout': 0.5, 'trans_planes': 128}
-
-
-def get_model():
-    network = ResNet1D(_input_channel, _output_channel, BasicBlock1D, [2, 2, 2, 2],
-                        base_plane=64, output_block=FCOutputModule, kernel_size=3, **_fc_config)
-    return network
 
 
 def conv3(in_planes, out_planes, kernel_size, stride=1, dilation=1):
