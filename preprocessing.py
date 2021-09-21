@@ -15,7 +15,7 @@ def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('--ronin_model', '-r', type=str, default='trained_models/ronin_resnet/checkpoint_gsn_latest.pt', \
         help='ronin resnet model path')
-    parser.add_argument('--dataset', '-d', type=str, default='dataset/landmark_train', \
+    parser.add_argument('--dataset', '-d', type=str, default='dataset/autoencoder_train', \
         help='dataset path')
     return parser.parse_args()
 

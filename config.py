@@ -3,6 +3,12 @@ from os import path as osp
 
 NS2S = 1e9
 MS2S = 1e6
+VALIDATION_SIZE = 0.3
+
+
+### bssid
+BSSID_THRESHOLD = 20
+
 
 ### ronin
 RONIN_STEP_SIZE = 10
