@@ -8,21 +8,19 @@ from config import *
 
 
 class Wifi:
-    def __init__(self, train, validation=None, test=None):
+    def __init__(self, train=None, test=None):
         self.train_data = {}
-        self.validation_data = {}
         self.test_data = {}
-        if not test:
-            if validation:
-                for sequence in glob(osp.join(validation, '*')):
-                    self.validation_data[osp.basename(sequence)] = self.load_data(sequence)
-                for sequence in glob(osp.join(train, '*')):
-                    self.train_data[osp.basename(sequence)] = self.load_data(sequence)
-            else:
-                for sequence in glob(osp.join(train, '*')):
-                    self.train_data[osp.basename(sequence)] = self.load_data(sequence)
-                self.split_data()
-        else:
+        if train != None and test != None:
+            for sequence in glob(osp.join(test, '*')):
+                self.test_data[osp.basename(sequence)] = self.load_data(sequence)
+            for sequence in glob(osp.join(train, '*')):
+                self.train_data[osp.basename(sequence)] = self.load_data(sequence)
+        elif train != None and test == None:
+            for sequence in glob(osp.join(train, '*')):
+                self.train_data[osp.basename(sequence)] = self.load_data(sequence)
+            self.train_test_split()
+        elif train == None and test != None:
             for sequence in glob(osp.join(test, '*')):
                 self.test_data[osp.basename(sequence)] = self.load_data(sequence)
 
@@ -31,7 +29,7 @@ class Wifi:
             wifi = pickle.load(fr)
         return wifi
 
-    def split_data(self):
+    def train_test_split(self):
         for sequence in self.train_data.keys():
             sequence_size = len(self.train_data[sequence])
             index = np.random.choice(sequence_size, int(sequence_size*VALIDATION_SIZE), replace=False)
@@ -70,7 +68,23 @@ class Wifi:
 
     def get_test_data(self):
         return self.test_data
+    
+    def insert_train_data(self, data):
+        self.train_data = data
 
-    def get_validation_data(self):
-        return self.validation_data
+    def insert_test_data(self, data):
+        self.test_data = data
 
+    def sort_by_bssid(self, data):
+        for sequence in data:
+            for i in range(len(data[sequence])):
+                bssid = data[sequence][i]['bssid']
+                level = data[sequence][i]['level']
+                x = np.zeros(shape=[len(self.bssid)], dtype=np.float32) - 100
+                for b in bssid:
+                    if b in self.bssid:
+                        x[self.bssid.index(b)] = level[bssid.index(b)]
+                
+                data[sequence][i]['x'] = (x+100) / 100
+        return data
+                
