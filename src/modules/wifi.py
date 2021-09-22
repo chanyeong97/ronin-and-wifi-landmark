@@ -86,5 +86,6 @@ class Wifi:
                         x[self.bssid.index(b)] = level[bssid.index(b)]
                 
                 data[sequence][i]['x'] = (x+100) / 100
+                data[sequence][i]['landmark'] = np.float32(sequence.split('_')[0])
         return data
                 

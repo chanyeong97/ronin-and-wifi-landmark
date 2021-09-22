@@ -13,11 +13,11 @@ from src.modules.loss import autoencoder_loss
 class Autoencoder(Model):
     def __init__(self, x):
         super(Autoencoder, self).__init__()
-        self.dense1 = Dense(AUTOENCODER_LAYER_1, activation='relu')
-        self.dense2 = Dense(AUTOENCODER_LAYER_2, activation='relu')
-        self.dense3 = Dense(AUTOENCODER_LAYER_3, activation='relu')
-        self.dense4 = Dense(AUTOENCODER_LAYER_4, activation='relu')
-        self.dense5 = Dense(AUTOENCODER_LAYER_5, activation='relu')
+        self.dense1 = Dense(ENCODING_LAYER_1, activation='relu')
+        self.dense2 = Dense(ENCODING_LAYER_2, activation='relu')
+        self.dense3 = Dense(ENCODING_LAYER_3, activation='relu')
+        self.dense4 = Dense(DECODING_LAYER_1, activation='relu')
+        self.dense5 = Dense(DECODING_LAYER_2, activation='relu')
         self.dense6 = Dense(len(x))
         self.dropout = Dropout(AUTOENCODER_DROPOUT)
 

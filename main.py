@@ -6,12 +6,13 @@ from os import path as osp
 
 from src.modules.wifi import Wifi
 from src.models.autoencoder import train_autoencoder, test_autoencoder
+from src.models.landmark import train_landmark, test_landmark
 
 
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('--model', '-ml', type=str, choices=['autoencoder', 'landmark', 'wifi_net', 'enhanced_wifi'], \
-        default='autoencoder', help='select a model to train')
+        default='landmark', help='select a model to train')
     parser.add_argument('--autoencoder', '-a', type=str, default='trained_models/autoencoder', \
         help='autoencoder model path')
     parser.add_argument('--landmark', '-l', type=str, default='trained_models/landmark', \
@@ -20,9 +21,9 @@ def parse_args():
         help='wifi_net model path')
     parser.add_argument('--enhanced_wifi', '-e', type=str, default='trained_models/enhanced_wifi', \
         help='enhanced wifi model path')
-    parser.add_argument('--train_dataset', '-trd', type=str, #default='dataset/autoencoder_train', \
+    parser.add_argument('--train_dataset', '-trd', type=str, default='dataset/landmark_train', \
         help='train dataset path')
-    parser.add_argument('--test_dataset', '-ted', type=str, default='dataset/landmark_train', \
+    parser.add_argument('--test_dataset', '-ted', type=str, #default='dataset/landmark_train', \
         help='test dataset path')
     parser.add_argument('--bssid', '-b', type=str, default='trained_models/bssid.pickle', \
         help='bssid path')
@@ -35,7 +36,7 @@ def train(args, wifi):
     if args.model == 'autoencoder':
         train_autoencoder(args, wifi)
     elif args.model == 'landmark':
-        print('.')
+        train_landmark(args, wifi)
     elif args.model == 'wifi_net':
         print('.')
     elif args.model == 'enhanced_wifi':
@@ -46,7 +47,7 @@ def test(args, wifi):
     if args.model == 'autoencoder':
         test_autoencoder(args, wifi)
     elif args.model == 'landmark':
-        print('.')
+        test_landmark(args, wifi)
     elif args.model == 'wifi_net':
         print('.')
     elif args.model == 'enhanced_wifi':
