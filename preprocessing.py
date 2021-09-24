@@ -13,9 +13,9 @@ from src.models.ronin import *
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--ronin_model', '-r', type=str, default='trained_models/ronin_resnet/checkpoint_gsn_latest.pt', \
+    parser.add_argument('--ronin', '-r', type=str, default='trained_models/ronin_resnet/checkpoint_gsn_latest.pt', \
         help='ronin resnet model path')
-    parser.add_argument('--dataset', '-d', type=str, default='dataset/autoencoder_train', \
+    parser.add_argument('--dataset', '-d', type=str, default='dataset/test', \
         help='dataset path')
     return parser.parse_args()
 
@@ -23,16 +23,16 @@ def parse_args():
 def main(args):
     if not torch.cuda.is_available():
         device = torch.device('cpu')
-        checkpoint = torch.load(args.ronin_model, map_location=lambda storage, location: storage)
+        checkpoint = torch.load(args.ronin, map_location=lambda storage, location: storage)
     else:
         device = torch.device('cuda:0')
-        checkpoint = torch.load(args.ronin_model)
+        checkpoint = torch.load(args.ronin)
 
     network = get_model()
 
     network.load_state_dict(checkpoint['model_state_dict'])
     network.eval().to(device)
-    print('Model {} loaded to device {}.'.format(args.ronin_model, device))
+    print('Model {} loaded to device {}.'.format(args.ronin, device))
 
     all_sequence = glob(osp.join(args.dataset, '*'))
     for sequence in all_sequence:
@@ -73,8 +73,8 @@ def main(args):
         for i in range(len(wifi)):
             wifi[i]['location'] = wifi_location[i]
 
-        with open(osp.join(sequence, 'wifi.pickle'), 'wb') as fw:
-            pickle.dump(wifi, fw)
+        # with open(osp.join(sequence, 'wifi.pickle'), 'wb') as fw:
+        #     pickle.dump(wifi, fw)
 
         x = trajectory[:, 0]
         y = trajectory[:, 1]

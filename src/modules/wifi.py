@@ -32,7 +32,7 @@ class Wifi:
     def train_test_split(self):
         for sequence in self.train_data.keys():
             sequence_size = len(self.train_data[sequence])
-            index = np.random.choice(sequence_size, int(sequence_size*VALIDATION_SIZE), replace=False)
+            index = np.random.choice(sequence_size, int(sequence_size*TEST_SIZE), replace=False)
             self.test_data[sequence] = []
             for i in index:
                 self.test_data[sequence].append(self.train_data[sequence][i])

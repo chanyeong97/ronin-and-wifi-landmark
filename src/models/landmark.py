@@ -8,33 +8,33 @@ from os import path as osp
 from config import *
 from src.models.autoencoder import Autoencoder
 from src.modules.train import model_fit
-from src.modules.loss import landmark_loss
+from src.modules.losses import landmark_loss
 
 
 class Landmark(Model):
     def __init__(self):
         super(Landmark, self).__init__()
-        self.dense1 = Dense(LANDMARK_LAYER_1, activation='relu')
-        self.dense2 = Dense(LANDMARK_LAYER_2, activation='relu')
-        self.dense3 = Dense(LANDMARK_LAYER_3, activation='relu')
-        self.dense4 = Dense(LANDMARK_LAYER_4, activation='relu')
-        self.dense5 = Dense(LANDMARK_OUTPUT_LAYER, activation='relu')
+        self.dense_1 = Dense(LANDMARK_LAYER_1, activation='relu')
+        self.dense_2 = Dense(LANDMARK_LAYER_2, activation='relu')
+        self.dense_3 = Dense(LANDMARK_LAYER_3, activation='relu')
+        self.dense_4 = Dense(LANDMARK_LAYER_4, activation='relu')
+        self.dense_5 = Dense(LANDMARK_OUTPUT_LAYER, activation='relu')
         self.dropout = Dropout(LANDMARK_DROPOUT)
 
     def __call__(self, x, training=False):
-        x = self.dense1(x)
+        x = self.dense_1(x)
         x = self.dropout(x, training=training)
-        x = self.dense2(x)
+        x = self.dense_2(x)
         x = self.dropout(x, training=training)
-        x = self.dense3(x)
+        x = self.dense_3(x)
         x = self.dropout(x, training=training)
-        x = self.dense4(x)
+        x = self.dense_4(x)
         x = self.dropout(x, training=training)
-        x = self.dense5(x)
+        x = self.dense_5(x)
         return x
 
 
-def set_landmark_input(data):
+def set_landmark_features(data):
     x = []
     y = []
     for sequence in data:
@@ -50,13 +50,13 @@ def train_landmark(args, wifi):
     train_data = wifi.get_train_data()
     test_data = wifi.get_test_data()
 
-    train_x, train_y = set_landmark_input(train_data)
-    test_x, test_y = set_landmark_input(test_data)
+    train_x, train_y = set_landmark_features(train_data)
+    test_x, test_y = set_landmark_features(test_data)
 
     autoencoder = Autoencoder(wifi.get_bssid())
     autoencoder.load_weights(osp.join(args.autoencoder, 'model', 'model'))
 
-    train_x = autoencoder.encoder(train_x)
+    train_x = autoencoder.encoder(train_x).numpy()
     test_x = autoencoder.encoder(test_x)
 
     train_dataset = tf.data.Dataset.from_tensor_slices((train_x, train_y))
@@ -66,7 +66,7 @@ def train_landmark(args, wifi):
     model = Landmark()
     optimizer = tf.optimizers.Adam(learning_rate=LANDMARK_LEARNING_RATE)
     ckpt = tf.train.Checkpoint(step=tf.Variable(0), optimizer=optimizer, net=model)
-    manager = tf.train.CheckpointManager(ckpt, args.landmark, max_to_keep=LANDMAKR_MAX_TO_KEEP)
+    manager = tf.train.CheckpointManager(ckpt, args.landmark, max_to_keep=LANDMARK_MAX_TO_KEEP)
     ckpt.restore(manager.latest_checkpoint)
     if manager.latest_checkpoint:
         print("Restored from {}".format(manager.latest_checkpoint))
@@ -78,27 +78,34 @@ def train_landmark(args, wifi):
         loss = []
         for x, y in train_dataset:
             loss.append(model_fit(x, y, landmark_loss, model, optimizer))
+
         loss_avg = sum(loss) / len(loss)
         ckpt.step.assign_add(1)
-        if (epoch+1) % 250 == 0:
+        if (epoch+1) % 100 == 0:
             train_loss = landmark_loss(model(train_x), train_y)
             test_loss = landmark_loss(model(test_x), test_y)
             print("epoch: ", (epoch+1))
             print("train loss: ", loss_avg)
             print("train loss with dropout: ", train_loss)
             print("test loss without dropout: ", test_loss)
-
             if test_loss < best_test_loss:
                 best_test_loss = test_loss
                 save_path = manager.save()
                 print("Saved checkpoint for step {}: {}".format(int(ckpt.step), save_path))
                 model.save_weights(osp.join(args.landmark, 'model', 'model'))
 
+    best_model = Landmark()
+    best_model.load_weights(osp.join(args.landmark, 'model', 'model'))
+    pred = np.argmax(best_model(test_x).numpy(), axis=1)
+    count = len(np.where(pred==test_y)[0])
+    accuracy = (count/len(pred)) * 100
+    print('accuracy: {}%'.format(accuracy))
+
 
 def test_landmark(args, wifi):
     wifi.sort_by_bssid(wifi.get_test_data())
     test_data = wifi.get_test_data()
-    test_x, test_y = set_landmark_input(test_data)
+    test_x, test_y = set_landmark_features(test_data)
 
     autoencoder = Autoencoder(wifi.get_bssid())
     autoencoder.load_weights(osp.join(args.autoencoder, 'model', 'model'))

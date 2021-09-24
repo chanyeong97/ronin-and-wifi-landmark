@@ -7,42 +7,42 @@ from os import path as osp
 
 from config import *
 from src.modules.train import model_fit
-from src.modules.loss import autoencoder_loss
+from src.modules.losses import autoencoder_loss
 
 
 class Autoencoder(Model):
     def __init__(self, x):
         super(Autoencoder, self).__init__()
-        self.dense1 = Dense(ENCODING_LAYER_1, activation='relu')
-        self.dense2 = Dense(ENCODING_LAYER_2, activation='relu')
-        self.dense3 = Dense(ENCODING_LAYER_3, activation='relu')
-        self.dense4 = Dense(DECODING_LAYER_1, activation='relu')
-        self.dense5 = Dense(DECODING_LAYER_2, activation='relu')
-        self.dense6 = Dense(len(x))
+        self.dense_1 = Dense(ENCODING_LAYER_1, activation='relu')
+        self.dense_2 = Dense(ENCODING_LAYER_2, activation='relu')
+        self.dense_3 = Dense(ENCODING_OUTPUT_LAYER, activation='relu')
+        self.dense_4 = Dense(DECODING_LAYER_1, activation='relu')
+        self.dense_5 = Dense(DECODING_LAYER_2, activation='relu')
+        self.dense_6 = Dense(len(x))
         self.dropout = Dropout(AUTOENCODER_DROPOUT)
 
     def __call__(self, x, training=False):
-        x = self.dense1(x)
+        x = self.dense_1(x)
         x = self.dropout(x, training=training)
-        x = self.dense2(x)
+        x = self.dense_2(x)
         x = self.dropout(x, training=training)
-        x = self.dense3(x)
+        x = self.dense_3(x)
         x = self.dropout(x, training=training)
-        x = self.dense4(x)
+        x = self.dense_4(x)
         x = self.dropout(x, training=training)
-        x = self.dense5(x)
+        x = self.dense_5(x)
         x = self.dropout(x, training=training)
-        x = self.dense6(x)
+        x = self.dense_6(x)
         return x
 
     def encoder(self, x):
-        x = self.dense1(x)
-        x = self.dense2(x)
-        x = self.dense3(x)
+        x = self.dense_1(x)
+        x = self.dense_2(x)
+        x = self.dense_3(x)
         return x
 
 
-def set_autoencoder_input(data):
+def set_autoencoder_features(data):
     x = []
     for sequence in data:
         for i in range(len(data[sequence])):
@@ -56,8 +56,8 @@ def train_autoencoder(args, wifi):
     train_data = wifi.get_train_data()
     test_data = wifi.get_test_data()
 
-    train_x = set_autoencoder_input(train_data)
-    test_x = set_autoencoder_input(test_data)
+    train_x = set_autoencoder_features(train_data)
+    test_x = set_autoencoder_features(test_data)
 
     train_dataset = tf.data.Dataset.from_tensor_slices((train_x, train_x))
     train_dataset = train_dataset.shuffle(buffer_size=len(train_x))
@@ -78,16 +78,16 @@ def train_autoencoder(args, wifi):
         loss = []
         for x, y in train_dataset:
             loss.append(model_fit(x, y, autoencoder_loss, model, optimizer))
+            
         loss_avg = sum(loss) / len(loss)
         ckpt.step.assign_add(1)
-        if (epoch+1) % 250 == 0:
+        if (epoch+1) % 100 == 0:
             train_loss = autoencoder_loss(model(train_x), train_x)
             test_loss = autoencoder_loss(model(test_x), test_x)
             print("epoch: ", (epoch+1))
             print("train loss: ", loss_avg)
             print("train loss with dropout: ", train_loss)
             print("test loss without dropout: ", test_loss)
-
             if test_loss < best_test_loss:
                 best_test_loss = test_loss
                 save_path = manager.save()
@@ -98,7 +98,7 @@ def train_autoencoder(args, wifi):
 def test_autoencoder(args, wifi):
     wifi.sort_by_bssid(wifi.get_test_data())
     test_data = wifi.get_test_data()
-    test_x = set_autoencoder_input(test_data)
+    test_x = set_autoencoder_features(test_data)
 
     model = Autoencoder(wifi.get_bssid())
     model.load_weights(osp.join(args.autoencoder, 'model', 'model'))
