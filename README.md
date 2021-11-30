@@ -1,6 +1,6 @@
 # ronin-and-wifi-landmark Fusion
 
-관성센러를 활용한 AI기반의 정밀 궤적 위치추정 모델과 Autoencoder 기반의 Landmark detection의 융합을 통한 궤적을 추정합니다. Tensorflow 를 이용한 학습에 관련된 코드는 [이곳](https://github.com/chanyeong97/Real-time-INS-python)에서 확인하실 수 있습니다
+관성센서를 활용한 AI기반의 정밀 궤적 위치추정 모델과 Autoencoder 기반의 Landmark detection의 융합을 통한 궤적을 추정합니다. Tensorflow 를 이용한 학습에 관련된 코드는 [이곳](https://github.com/chanyeong97/Real-time-INS-python)에서 확인하실 수 있습니다
 
 
 ## 개요
